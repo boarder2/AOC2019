@@ -8,7 +8,7 @@
     "tsc": "tsc",
     "tsc:w": "tsc -w",
     "start": "tsc --sourceMap && node build/program.js",
-    "debug" : "tsc --sourceMap && node --inspect-brk build/program.js"
+    "debug": "tsc --sourceMap && node --inspect-brk build/program.js"
   },
   "author": "",
   "license": "MIT",

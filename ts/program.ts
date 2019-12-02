@@ -1,3 +1,3 @@
-import doDay1 from "./days/1/main";
+import doDay2 from "./days/2/main";
 
-doDay1();
+doDay2();
