@@ -1,38 +1,49 @@
 import fs from "fs";
 import reader from "readline-sync";
-import doDay5Part1 from "./part1";
-import doDay5Part2 from "./part2";
 
 export default function doDay5() {
 	const input = fs.readFileSync("./days/5/input.txt")
 		.toString()
+		.split("\n")[0]
 		.split(",")
 		.map((v: string) => {
 			return parseInt(v.trim());
 		});
 
-	doDay5Part1([...input]);
-	doDay5Part2([...input]);
+	runProgram(input);
 }
 
 export function runProgram(program: number[]) {
 	let continueRunning = true;
 	let instructionIndex = 0;
-	let instructionLength = 0;
+	let instructionString: string;
+
 	while (continueRunning) {
-		const instructionString = program[instructionIndex].toString();
+		instructionString = program[instructionIndex].toString();
 		switch (parseInt(instructionString.substr(instructionString.length - 2))) {
-			case 1: //add
-				instructionLength = add(program, instructionString, instructionIndex);
+			case 1:
+				instructionIndex = add();
 				break;
-			case 2: //multiply
-				instructionLength = multiply(program, instructionString, instructionIndex);
+			case 2:
+				instructionIndex = multiply();
 				break;
 			case 3:
-				instructionLength = input(program, instructionString, instructionIndex);
+				instructionIndex = input();
 				break;
 			case 4:
-				instructionLength = output(program, instructionString, instructionIndex);
+				instructionIndex = output();
+				break;
+			case 5:
+				instructionIndex = jit();
+				break;
+			case 6:
+				instructionIndex = jif();
+				break;
+			case 7:
+				instructionIndex = lt();
+				break;
+			case 8:
+				instructionIndex = eq();
 				break;
 			case 99:
 				console.log("Stopping.");
@@ -40,8 +51,67 @@ export function runProgram(program: number[]) {
 			default:
 				console.log(`Unexpected opcode ${instructionString} at ${instructionIndex}`);
 				return;
+		};
+	}
+
+	function getParameterMode(parameterIndex: number): ParameterMode {
+		if (parameterIndex > instructionString.length - 3) return ParameterMode.Position;
+		return <ParameterMode>instructionString.charAt(instructionString.length - 3 - parameterIndex);
+	}
+
+	function getValue(parameterIndex: number) {
+		const mode = getParameterMode(parameterIndex);
+		return mode === ParameterMode.Position ? program[program[instructionIndex + parameterIndex + 1]] : program[instructionIndex + parameterIndex + 1];
+	}
+
+	function setValue(parameterIndex: number, value: number) {
+		const mode = getParameterMode(parameterIndex);
+		program[mode === ParameterMode.Position ? program[instructionIndex + parameterIndex + 1] : instructionIndex + parameterIndex + 1] = value;
+	}
+
+	function add(): number {
+		setValue(2, getValue(0) + getValue(1));
+		return instructionIndex + 4;
+	}
+
+	function multiply(): number {
+		setValue(2, getValue(0) * getValue(1));
+		return instructionIndex + 4;
+	}
+
+	function output(): number {
+		console.log(getValue(0));
+		return instructionIndex + 2;
+	}
+
+	function input(): number {
+		const value = parseInt(reader.prompt());
+		setValue(0, value);
+		return instructionIndex + 2;
+	}
+
+	function jit(): number {
+		if (getValue(0) !== 0) {
+			return getValue(1);
 		}
-		instructionIndex += instructionLength;
+		return instructionIndex + 3;
+	}
+
+	function jif(): number {
+		if (getValue(0) === 0) {
+			return getValue(1);
+		}
+		return instructionIndex + 3;
+	}
+
+	function lt(): number {
+		setValue(2, getValue(0) < getValue(1) ? 1 : 0);
+		return instructionIndex + 4;
+	}
+
+	function eq(): number {
+		setValue(2, getValue(0) === getValue(1) ? 1 : 0);
+		return instructionIndex + 4;
 	}
 }
 
@@ -50,40 +120,3 @@ enum ParameterMode {
 	Immediate = "1"
 }
 
-function getParameterMode(instructionString: string, parameterIndex: number): ParameterMode {
-	if (parameterIndex > instructionString.length - 3) return ParameterMode.Position;
-	return <ParameterMode>instructionString.charAt(instructionString.length - 3 - parameterIndex);
-}
-
-function getValue(mode: ParameterMode, program: number[], location: number) {
-	return mode === ParameterMode.Position ? program[program[location]] : program[location];
-}
-
-function setValue(mode: ParameterMode, program: number[], location: number, value: number) {
-	program[mode === ParameterMode.Position ? program[location] : location] = value;
-}
-
-function add(program: number[], instrucitonString: string, instructionStart: number): number {
-	const a = getValue(getParameterMode(instrucitonString, 0), program, instructionStart + 1);
-	const b = getValue(getParameterMode(instrucitonString, 1), program, instructionStart + 2);
-	setValue(getParameterMode(instrucitonString, 2), program, instructionStart + 3, a + b);
-	return 4;
-}
-
-function multiply(program: number[], instrucitonString: string, instructionStart: number): number {
-	const a = getValue(getParameterMode(instrucitonString, 0), program, instructionStart + 1);
-	const b = getValue(getParameterMode(instrucitonString, 1), program, instructionStart + 2);
-	setValue(getParameterMode(instrucitonString, 2), program, instructionStart + 3, a * b);
-	return 4;
-}
-
-function output(program: number[], instructionString: string, instructionStart: number): number {
-	console.log(getValue(getParameterMode(instructionString, 0), program, instructionStart + 1));
-	return 2;
-}
-
-function input(program: number[], instructionString: string, instructionStart: number): number {
-	const value = parseInt(reader.prompt());
-	setValue(getParameterMode(instructionString, 0), program, instructionStart + 1, value);
-	return 2;
-}
